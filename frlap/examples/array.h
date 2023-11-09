@@ -16,6 +16,20 @@ print_arr (const size_t n,
 
 static
 void
+<<<<<<< HEAD
+=======
+elemental (const size_t   n,
+           const double   x[restrict const static n],
+                 double (*f) (double),
+                 double   y[restrict const static n])
+{
+  for (size_t i = 0; i < n; i++)
+      y[i] = f(x[i]);
+}
+
+static
+void
+>>>>>>> 5783904 (	Added frlap library)
 matprint (const size_t m,
           const size_t n,
           const double a[const static m][n])
@@ -35,6 +49,7 @@ matprint (const size_t m,
 
 static
 void
+<<<<<<< HEAD
 elemental (const size_t   n,
            const double   x[restrict const static n],
                  double (*f) (double),
@@ -47,6 +62,8 @@ elemental (const size_t   n,
 
 static
 void
+=======
+>>>>>>> 5783904 (	Added frlap library)
 matmul (const size_t m,
         const size_t n,
         const double a[const static m][n],
