@@ -25,7 +25,6 @@
 #include <float.h>
 
 #include <stdbool.h> // TODO: Maybe remove
-#include <stdio.h>   // TODO: Maybe remove
 
 /*
  * TODO:
@@ -70,9 +69,6 @@ frlap1qd_dcgtor_huang_oberman_linear (double frac_expon,
   extern double d2G_alpha_eq_1 (size_t);
 
   double c1 = 0.0, c2 = 0.0;
-
-  puts("\n ** in function frlap1qd_wgtor_huang_oberman_linear **");
-  fflush(stdout);
 
   if (almost_equal(frac_expon, 1.0))
     c1 = 1.0 / grid_step;

@@ -49,6 +49,7 @@ frlap1qd_dcgtor_gorenflo_mainardi (double frac_expon,
    * TODO:
    *   - seek for round-off errors, catastrophic
    *     cancelation or other numeric problems
+   *   - HOW TO DEAL WITH frac_expon \approx 1 but \neq 1
    *   - maybe rewrite for optimization
    */
 
@@ -59,7 +60,7 @@ frlap1qd_dcgtor_gorenflo_mainardi (double frac_expon,
   else
     {
       c1 = - pow(grid_step, - frac_expon)
-        / ( 2.0 * cos(0.5 * grid_step * M_PI) );
+        / ( 2.0 * cos(0.5 * frac_expon * M_PI) );
 
       c2 = c1 * frac_expon * (frac_expon - 1)
         / tgamma(2.0 - frac_expon);
