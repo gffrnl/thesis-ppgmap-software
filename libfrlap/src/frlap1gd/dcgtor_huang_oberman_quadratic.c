@@ -19,135 +19,130 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #include <frlap/frlap.h>
 #include <frlap/frlap1gd/dcgtors.h>
 #include <math.h>
-#include <float.h>
+#include "../almosteq.h"
 
-#include <stdbool.h> // TODO: Maybe remove
-#include <stdio.h>   // TODO: Maybe remove
+#ifndef M_1_SQRTPI
+#define M_1_SQRTPI 0.564189583547756286948079451561
+#endif
 
-/*
- * TODO:
- *   - maybe put the function almost equal in a library
- *   - see  https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
- *     for a better implementation of the equality between floating point
- *     types
- */
-
-static bool almost_equal(double a, double b)
-{
-  return fabs(a - b) < DBL_EPSILON;
-}
-
-/* TODO: REMOVE
-static double frlap_ncons(size_t n, double order)
-{
-  return order * exp2(order - 1)
-    / pow(M_PI, 0.5 * n)
-      * exp(  lgamma(0.5 * (order + n))
-            - lgamma( 1.0 - 0.5*order )  );
-}
-*/
-
-/* TODO: REMOVE
-static double frlap_ncons1(double order)
-{
-  return frlap_ncons(1, order);
-}
-*/
-
-void
-frlap1qd_dcgtor_huang_oberman_quadratic (double frac_expon,
-                                         double grid_step,
+int
+frlap1gd_dcgtor_huang_oberman_quadratic (double alpha,
+                                         double h,
                                          size_t n,
-                                         double mu[const static n])
+                                         double MU[const static n])
 {
-  /*
-   * TODO:
-   *   - maybe rewrite the for-loops to handle
-   *     even and odd weights without if's
-   *     (this is an optimization, really???)
-   */
-
   extern double d0G_alpha_ne_1 (double, size_t);
   extern double d1G_alpha_ne_1 (double, size_t);
   extern double d2G_alpha_ne_1 (double, size_t);
-
   extern double d0G_alpha_eq_1 (size_t);
   extern double d1G_alpha_eq_1 (size_t);
   extern double d2G_alpha_eq_1 (size_t);
 
-  double c1 = 0.0, c2 = 0.0;
+  { /* check arguments */
+    int ret;
+    ret = dcgtors_validate_args(alpha, h, n);
+    if ( ret != 0 )
+      return ret;
+  }
 
-  if (almost_equal(frac_expon, 1.0))
-    c1 = 1.0 / grid_step;
-  else
-    c1 = pow(grid_step, - frac_expon);
+  { /* treat the boundary cases alpha = 0 and alpha = 2 */
+    if ( almosteq(alpha, 0.0) )
+      {
+        MU[0] = 1.0;
+        for (size_t k = 1; k < n; k++)
+          MU[k] = 0.0;
+        return 0;
+      }
 
-  c2 = FRLAP_C1ALPHA(frac_expon) * c1;
+    if ( almosteq(alpha, 2.0) )
+      {
+        MU[0] =  2.0 / (h * h);
+        MU[1] = -1.0 / (h * h);
+        for (size_t k = 2; k < n; k++)
+          MU[k] = 0.0;
+        return 0;
+      }
+  }
 
- /*
-  * REMARK: using log-gamma function and then
-  *         exponentiate is better to mitigate
-  *         round-off/approximation errors
-  */
-  mu[0] = - c1 * exp2(frac_expon) / sqrt(M_PI)
-    * exp(  lgamma(0.5 * (1.0 + frac_expon))
-          - lgamma(2.0 - 0.5 * frac_expon  ) );
+  { /* {0 < alpha < 2} */
 
-  if (almost_equal(frac_expon, 1.0))
-    {
-      mu[1] = c2 * ( 1.0 - d2G_alpha_eq_1(1)
-                         + d1G_alpha_eq_1(2)
-                         - d1G_alpha_eq_1(1) );
+    double ca = 0.0;
+    double ch = 0.0;
+    
+    if ( almosteq(alpha, 1.0) )
+      {
+        ca = - FRLAP_C1ALPHA(1.0);
+        ch = 1.0 / h;
+      }
+    else
+      {
+        ca = - FRLAP_C1ALPHA(alpha);
+        ch = pow(h, -alpha);
+      }
+    
+    /*
+     * REMARK: using Log-Gamma function and then
+     *         exponentiate seems better to mitigate
+     *         round-off/approximation errors.
+     *         Since lgamma() computes the log of
+     *         the abs value of Gamma, we only can
+     *         do this because the arguments of
+     *         our Gammas are always positive.
+     */
+    MU[0] = ch * M_1_SQRTPI * exp2(alpha)
+      * exp(   lgamma(0.5 * (alpha + 1.0))
+             - lgamma(2.0 -  0.5 * alpha ) );
 
-      for (size_t k = 2; k < n; k++)
-        if (k%2 == 0)
-          {
-            mu[k] =
-              2 * c2 * (   d1G_alpha_eq_1(k+1)
-                         + d1G_alpha_eq_1(k-1)
-                         - d0G_alpha_eq_1(k+1)
-                         + d0G_alpha_eq_1(k-1) );
-          }
-        else
-          {
-            mu[k] =
-              c2 * ( - 0.5 * (   d1G_alpha_eq_1(k+2)
-                               + d1G_alpha_eq_1(k-2) )
-                     - 3.0 * d1G_alpha_eq_1(k)
-                     +       d0G_alpha_eq_1(k+2)
-                     -       d0G_alpha_eq_1(k-2) );
-          }
-    }
-  else
-    {
-      mu[1] = c2 * (         1.0 / (2.0 - frac_expon)
-                     -       d2G_alpha_ne_1(frac_expon, 1)
-                     - 0.5 * d1G_alpha_ne_1(frac_expon, 3)
-                     - 1.5 * d1G_alpha_ne_1(frac_expon, 1)
-                     +       d0G_alpha_ne_1(frac_expon, 3)
-                     -       d0G_alpha_ne_1(frac_expon, 1) );
+    ch *= ca;
+    if ( almosteq(alpha, 1.0) )
+      {
+        MU[1] = ch * (   1.0
+                       -       d2G_alpha_eq_1(1)
+                       - 0.5 * d1G_alpha_eq_1(3)
+                       - 1.5 * d1G_alpha_eq_1(1)
+                       +       d0G_alpha_eq_1(3)
+                       -       d0G_alpha_eq_1(1) );
+        
+        for (size_t k = 2; k < n; k+=2)
+          MU[k] = ch * 2.0 * (   d1G_alpha_eq_1(k+1)
+                               + d1G_alpha_eq_1(k-1)
+                               - d0G_alpha_eq_1(k+1)
+                               + d0G_alpha_eq_1(k-1) );
 
-      for (size_t k = 2; k < n; k++)
-        if (k%2 == 0)
-          {
-            mu[k] =
-              2 * c2 * (   d1G_alpha_ne_1(frac_expon, k+1)
-                         + d1G_alpha_ne_1(frac_expon, k-1)
-                         - d0G_alpha_ne_1(frac_expon, k+1)
-                         + d0G_alpha_ne_1(frac_expon, k-1) );
-          }
-        else
-          {
-            mu[k] =
-              c2 * ( - 0.5 * (   d1G_alpha_ne_1(frac_expon, k+2)
-                               + d1G_alpha_ne_1(frac_expon, k-2) )
-                     - 3.0 * d1G_alpha_ne_1(frac_expon, k)
-                     +       d0G_alpha_ne_1(frac_expon, k+2)
-                     -       d0G_alpha_ne_1(frac_expon, k-2) );
-          }
-      
-    }
+        for (size_t k = 3; k < n; k+=2)
+          MU[k] = ch * ( - 0.5 * (   d1G_alpha_eq_1(k+2)
+                                   + d1G_alpha_eq_1(k-2) )
+                         - 3.0 * d1G_alpha_eq_1(k)
+                         +       d0G_alpha_eq_1(k+2)
+                         -       d0G_alpha_eq_1(k-2) );
+      }
+    else
+      {
+        MU[1] = ch * (   1.0 / (2.0 - alpha)
+                       -       d2G_alpha_ne_1(alpha, 1)
+                       - 0.5 * d1G_alpha_ne_1(alpha, 3)
+                       - 1.5 * d1G_alpha_ne_1(alpha, 1)
+                       +       d0G_alpha_ne_1(alpha, 3)
+                       -       d0G_alpha_ne_1(alpha, 1) );
+        
+        for (size_t k = 2; k < n; k+=2)
+          MU[k] = ch * 2.0 * (   d1G_alpha_ne_1(alpha, k+1)
+                               + d1G_alpha_ne_1(alpha, k-1)
+                               - d0G_alpha_ne_1(alpha, k+1)
+                               + d0G_alpha_ne_1(alpha, k-1) );
+
+        for (size_t k = 3; k < n; k+=2)
+          MU[k] = ch * ( - 0.5 * (   d1G_alpha_ne_1(alpha, k+2)
+                                   + d1G_alpha_ne_1(alpha, k-2) )
+                         - 3.0 * d1G_alpha_ne_1(alpha, k)
+                         +       d0G_alpha_ne_1(alpha, k+2)
+                         -       d0G_alpha_ne_1(alpha, k-2) );
+      }    
+  }
+
+  return 0;
 }

@@ -6,7 +6,9 @@ AM_CPPFLAGS = -I$(top_srcdir)/include     \
 
 lib_LTLIBRARIES = libfrlap.la
 libfrlap_la_SOURCES = src/frlap.c \
+                      src/almosteq.c \
                       src/frlap1gd.c \
+                      src/frlap1gd/dcgtors_validate_args.c \
                       src/frlap1gd/dcgtor_spectral.c \
                       src/frlap1gd/dcgtor_huang_oberman.c \
                       src/frlap1gd/dcgtor_huang_oberman_linear.c \
@@ -18,8 +20,12 @@ libfrlap_la_SOURCES = src/frlap.c \
 
 pkginclude_frlap1gddir = ${pkgincludedir}/frlap1gd
 
-pkginclude_HEADERS = include/frlap/frlap.h include/frlap/frlap1gd.h
-pkginclude_frlap1gd_HEADERS = include/frlap/frlap1gd/dcgtors.h
+pkginclude_HEADERS = \
+	include/frlap/frlap.h \
+	include/frlap/frlap1gd.h
+pkginclude_frlap1gd_HEADERS = \
+	include/frlap/frlap1gd/dcgtors.h \
+	include/frlap/frlap1gd/dcgtors_validate_args.h
 
 
 uninstall-hook:

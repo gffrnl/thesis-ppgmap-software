@@ -1,7 +1,7 @@
 /*   libfrlap
  *
  *   src/frlap1gd/dcgtor_gorenflo_mainardi.c
- *     Generator of Gorenflo & Mainardi differences coefficients.
+ *     Generator for Gorenflo & Mainardi differences coefficients.
  *
  *   Copyright (C) 2023  Guilherme F. Fornel <gffrnl@gmail.com>
  *
@@ -18,85 +18,105 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include <frlap/frlap.h>
+
 #include <frlap/frlap1gd/dcgtors.h>
 #include <math.h>
-#include <float.h>
+#include "../almosteq.h"
 
-#include <stdbool.h> // TODO: Maybe remove
-#include <stdio.h>   // TODO: Maybe remove
-
-/*
- * TODO:
- *   - maybe put the function almost equal in a library
- *   - see  https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
- *     for a better implementation of the equality between floating point
- *     types
- */
-
-static bool almost_equal(double a, double b)
-{
-  return fabs(a - b) < DBL_EPSILON;
-}
-
-void
-frlap1qd_dcgtor_gorenflo_mainardi (double frac_expon,
-                                   double grid_step,
+int
+frlap1gd_dcgtor_gorenflo_mainardi (double alpha,
+                                   double h,
                                    size_t n,
-                                   double mu[const static n])
+                                   double MU[const static n])
 {
-  /*
-   * TODO:
-   *   - seek for round-off errors, catastrophic
-   *     cancelation or other numeric problems
-   *   - HOW TO DEAL WITH frac_expon \approx 1 but \neq 1
-   *   - maybe rewrite for optimization
+  /* TODO:
+   *   - there is a way to mitigate the large errors
+   *     when alpha ~~ 1 but alpha != 1 ???
+   *   - when alpha == 1 it is better use 1.0/(k*(k+1))
+   *     or take the logs and then exponentiate ???
    */
+  
+  { /* check arguments */
+    int ret;
+    ret = dcgtors_validate_args(alpha, h, n);
+    if ( ret != 0 )
+      return ret;
+  }
 
-  double c1 = 0.0, c2 = 0.0;
+  { /* treat the boundary cases alpha = 0 and alpha = 2 */
+    if ( almosteq(alpha, 0.0) )
+      {
+        MU[0] = 1.0;
+        for (size_t k = 1; k < n; k++)
+          MU[k] = 0.0;
+        return 0;
+      }
 
-  if (almost_equal(frac_expon, 1.0))
-    c1 = 1.0 / (grid_step * M_PI);
-  else
-    {
-      c1 = - pow(grid_step, - frac_expon)
-        / ( 2.0 * cos(0.5 * frac_expon * M_PI) );
+    if ( almosteq(alpha, 2.0) )
+      {
+        MU[0] =  2.0 / (h * h);
+        MU[1] = -1.0 / (h * h);
+        for (size_t k = 2; k < n; k++)
+          MU[k] = 0.0;
+        return 0;
+      }
+  }
 
-      c2 = c1 * frac_expon * (frac_expon - 1)
-        / tgamma(2.0 - frac_expon);
-    }
+  { /* {0 < alpha < 2} */
+    if ( almosteq(alpha, 1.0) )
+      {
+        double c1 = 1.0 / (h * M_PI);
+        
+        MU[0] = c1 * 2.0;
 
-  if (almost_equal(frac_expon, 1.0))
-    {
-      mu[0] = - 2.0 * c1;
+        for (size_t k = 1; k < n; k++)
+          MU[k] = - c1 / (k * (k+1));
+          /* or it is better to use ??
+          MU[k] = - c1 / exp(  log((double)  k   )
+                             + log((double) (k+1)) );
+          */
+      }
+    else
+      {
+        double ch = 1.0 / pow(h, alpha);
+        double cc = 1.0 / cos(0.5 * alpha * M_PI);
+        double ca = alpha;
 
-      for (size_t k = 1; k < n; k++)
-          mu[k] = c1 / (k * (k+1));
-    }
-  else if (frac_expon < 1.0)
-    {
-      mu[0] = 2.0 * c1;
+        /*
+         * REMARK: Using Log-Gamma function and then
+         *         exponentiate seems to be better to
+         *         mitigate round-off/approximation errors.
+         *         We only can do this because the result
+         *         of our Gammas are positive, since lgamma()
+         *         computes the logarithm of Gamma's ABSOLUTE
+         *         value.
+         */
 
-      /*
-       * REMARK: using log-gamma function and then
-       *         exponentiate is better to mitigate
-       *         round-off/approximation errors
-       */
-      for (size_t k = 1; k < n; k++)
-        mu[k] = c2 * exp( lgamma(k-frac_expon) - lgamma(k+1) );
-    }
-  else if (frac_expon > 1.0)
-    {
-      mu[0] = - 2.0 * frac_expon * c1;
+        if (alpha < 1.0)
+          {
+            MU[0] = cc * ch;
+            
+            ca *= 0.5 * (alpha - 1.0) * ch;
+            for (size_t k = 1; k < n; k++)
+              MU[k] = cc * ( ca * exp(   lgamma((double) k - alpha)
+                                       - lgamma(k + 1)
+                                       - lgamma(2.0 - alpha)  ) );
+          }
+        else /* 1 < alpha < 2 */
+          {
+            MU[0] = - cc * (ca * ch);
 
-      mu[1] = c1 * (1.0 + 0.5 * frac_expon * (frac_expon - 1.0));
+            ca *= 0.5 * (alpha - 1.0);
+            MU[1] = cc * ( (0.5 + 0.5 * ca) * ch);
 
-      /*
-       * REMARK: using log-gamma function and then
-       *         exponentiate is better to mitigate
-       *         round-off/approximation errors
-       */
-      for (size_t k = 2; k < n; k++)
-        mu[k] = c2 * exp( lgamma(k+1-frac_expon) - lgamma(k+2) );
-    }
+            ca *= (2.0 - alpha) * ch;
+            for (size_t k = 2; k < n; k++)
+              MU[k] = cc * ( ca * exp(   lgamma((double) (k+1) - alpha)
+                                       - lgamma(k + 2)
+                                       - lgamma(3.0 - alpha)  ) );
+          }
+      }
+  }
+
+  return 0;
 }

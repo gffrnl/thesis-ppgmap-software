@@ -1,8 +1,7 @@
 /*   libfrlap
  *
- *   src/frlap1gd/dcgtor_centered_5_point_periodized.c
- *     Generator of periodized 5-point centered differences
- *     coefficients.
+ *   src/almosteq.h
+ *     Comparison functions for floating point equality.
  *
  *   Copyright (C) 2023  Guilherme F. Fornel <gffrnl@gmail.com>
  *
@@ -20,19 +19,14 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <frlap/frlap1gd/dcgtors.h>
-#include <stdio.h>  // fprintf()
-#include <stdlib.h> // abort()
+#pragma once
 
-int
-frlap1gd_dcgtor_centered_5_point_periodized (double alpha,
-                                             double h,
-                                             size_t n,
-                                             double MU[const static n])
+#include <stdbool.h>
 
-{
-  (void) fprintf(stderr,
-      "frlap1qd_dcgtor_centered_5_point_periodized() not implemented\n");
-  abort();
-  return 0;
-}
+/*
+ * REMARK:
+ *   - maybe put the functions almosteq in a library
+ */
+bool almosteqf (     float  a,      float  b);
+bool almosteq  (     double a,      double b);
+bool almosteql (long double a, long double b);

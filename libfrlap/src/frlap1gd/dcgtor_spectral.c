@@ -1,7 +1,7 @@
 /*   libfrlap
  *
  *   src/frlap1gd/dcgtor_spectral.c
- *     Generator of spectral differences coefficients.
+ *     Generator for spectral differences coefficients.
  *
  *   Copyright (C) 2023  Guilherme F. Fornel <gffrnl@gmail.com>
  *
@@ -18,27 +18,12 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#include <frlap/frlap.h>
+
 #include <frlap/frlap1gd/dcgtors.h>
-#include <ooura/intde/intde1.c>
 #include <math.h>
-#include <float.h>
+#include "../almosteq.h"
 
-#include <stdbool.h> // TODO: Maybe remove
-#include <stdio.h>   // TODO: Maybe remove
-
-/*
- * TODO:
- *   - maybe put the function almost equal in a library
- *   - see  https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
- *     for a better implementation of the equality between floating point
- *     types
- */
-
-static bool almost_equal(double a, double b)
-{
-  return fabs(a - b) < DBL_EPSILON;
-}
+#include <ooura/intde/intde1.c>
 
 static int freq;
 static double expon;
@@ -51,45 +36,71 @@ static double f(double x)
   return pow(x, expon) * cos(freq * x);
 }
 
-void
-frlap1qd_dcgtor_spectral (double frac_expon,
-                          double grid_step,
+int
+frlap1gd_dcgtor_spectral (double alpha,
+                          double h,
                           size_t n,
-                          double mu[const static n])
+                          double MU[const static n])
 {
-  if (almost_equal(frac_expon, 1.0))
-    {
-      mu[0] = -1.0;
-      for (size_t k = 1; k < n; k+=2)
-          mu[k] = 2.0 / (M_PI * k*k * grid_step);
-      for (size_t k = 2; k < n; k+=2)
-          mu[k] = 0.0;
-    }
-  else if (almost_equal(frac_expon, 2.0))
-    {
-      mu[0] = - (M_PI / grid_step) * (M_PI / grid_step) / 3.0;
-      for (size_t k = 1; k < n; k+=2)
-          mu[k] =   2.0 / ( (k*grid_step) * (k*grid_step) );
-      for (size_t k = 2; k < n; k+=2)
-          mu[k] = - 2.0 / ( (k*grid_step) * (k*grid_step) );
-    }
-  else
-    {
-      extern int freq;
-      extern double expon;
-      double err;
+  { /* check arguments */
+    int ret;
+    ret = dcgtors_validate_args(alpha, h, n);
+    if ( ret != 0 )
+      return ret;
+  }
 
-      expon = frac_expon;
-      
-      mu[0] = - pow(M_PI / grid_step, frac_expon) / (frac_expon + 1.0);
+  { /* treat the boundary cases alpha = 0 and alpha = 2 */
+    if ( almosteq(alpha, 0.0) )
+      {
+        MU[0] = 1.0;
+        for (size_t k = 1; k < n; k++)
+          MU[k] = 0.0;
+        return 0;
+      }
 
-      grid_step = pow(grid_step, frac_expon);
+    if ( almosteq(alpha, 2.0) )
+      {
+        double c2 = 2.0 / (h * h);
+        
+        MU[0] =  (M_PI * M_PI) / (3.0 * h * h);
+        for (size_t k = 1; k < n; k+=2)
+          MU[k] = - c2 / (k * k);
+        for (size_t k = 2; k < n; k+=2)
+          MU[k] =   c2 / (k * k);
+        return 0;
+      }
+  }
 
-      for (size_t k = 1; k < n; k++)
-        {
-          freq = k;
-          intde(f, 0.0, M_PI, 1.1e-14, &mu[k], &err);
-          mu[k] *= -1.0 / (M_PI * grid_step);
-        }
-    }
+  { /* the case alpha = 1 */
+    if ( almosteq(alpha, 1.0) )
+      {
+        double c1 = 1.0 / (M_PI * h);
+          
+        MU[0] =  M_PI / (2 * h);
+        for (size_t k = 1; k < n; k+=2)
+          MU[k] = - c1 * (2.0 / (k * k));
+        for (size_t k = 2; k < n; k+=2)
+          MU[k] = 0.0;
+        return 0;
+      }
+  }
+
+  { /* {0 < alpha < 1} U {1 < alpha < 2} */
+    extern int freq;
+    extern double expon;
+    double err;
+    double ch = 1.0 / (M_PI * pow(h, alpha)); 
+    
+    MU[0] = pow(M_PI/h, alpha) / (alpha + 1.0);
+
+    expon = alpha;
+    for (size_t k = 1; k < n; k++)
+      {
+        freq = k;
+        intde(f, 0.0, M_PI, 1.1e-14, &MU[k], &err);
+        MU[k] *= ch;
+      }
+  }
+
+  return 0;
 }

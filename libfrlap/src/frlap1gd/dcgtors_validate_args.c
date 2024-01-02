@@ -1,8 +1,7 @@
 /*   libfrlap
  *
- *   src/frlap1gd/dcgtor_centered_5_point_periodized.c
- *     Generator of periodized 5-point centered differences
- *     coefficients.
+ *   src/frlap1gd/dcgtors_validate_args.c
+ *     Argument validator for differences coefficients generators.
  *
  *   Copyright (C) 2023  Guilherme F. Fornel <gffrnl@gmail.com>
  *
@@ -19,20 +18,20 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-#include <frlap/frlap1gd/dcgtors.h>
-#include <stdio.h>  // fprintf()
-#include <stdlib.h> // abort()
+#include <frlap/frlap1gd/dcgtors_validate_args.h>
+#include <math.h>
 
 int
-frlap1gd_dcgtor_centered_5_point_periodized (double alpha,
-                                             double h,
-                                             size_t n,
-                                             double MU[const static n])
-
+dcgtors_validate_args (double frac_expon, double grid_step, size_t n)
 {
-  (void) fprintf(stderr,
-      "frlap1qd_dcgtor_centered_5_point_periodized() not implemented\n");
-  abort();
+  if ( isless(frac_expon, 0.0) || isgreater(frac_expon, 2.0) )
+    return FRLAP_FRLAP1GD_DCGTORS_ERRNO_ARG_FRAC_EXPON;
+    
+  if ( islessequal(grid_step, 0.0) )
+    return FRLAP_FRLAP1GD_DCGTORS_ERRNO_ARG_GRID_STEP;
+
+  if ( n == 0 )
+    return FRLAP_FRLAP1GD_DCGTORS_ERRNO_ARG_COEFF_SIZE;
+    
   return 0;
 }

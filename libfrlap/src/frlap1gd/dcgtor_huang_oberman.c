@@ -19,21 +19,22 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #include <stddef.h>
 #include <math.h>
 
 double
 d0G_alpha_ne_1 (double alpha, size_t k)
 {
-  return - pow((double) k, 2.0 - alpha)
-    / ( (2.0 - alpha) * (1.0 - alpha) * alpha );
+  return pow((double) k, 2.0 - alpha)
+    / ( alpha * (alpha - 1.0) * (2.0 - alpha) );
 }
 
 double
 d1G_alpha_ne_1 (double alpha, size_t k)
 {
-  return - pow((double) k, 1.0 - alpha)
-    / ( (1.0 - alpha) * alpha );
+  return pow((double) k, 1.0 - alpha)
+    / ( alpha * (alpha - 1.0) );
 }
 
 double

@@ -20,9 +20,9 @@ void
 tfrlap1gd0(size_t n,
            const double y [static const n],
            size_t ja, size_t jb,
-           size_t nc, // must be FRLAP1DQ_COEFF_SIZE(n, ja, jb)
+           size_t nc, // must be FRLAP1DQ0_DIFF_COEFF_SIZE(n, ja, jb)
            const double mu[static const nc],
-           size_t n0, // must be FRLAP1DQ_RETRN_SIZE(n, ja, jb)
+           size_t n0, // must be FRLAP1DQ0_FRLAP_SIZE(n, ja, jb)
            double FLY[static const n0])
 {
   /*
@@ -39,8 +39,8 @@ tfrlap1gd0(size_t n,
   assert(ja > 0 );
   assert(jb < n );
   assert(ja <= jb);
-  assert(nc == FRLAP1GD_DIFF_COEFF_SIZE(n, ja, jb));
-  assert(n0 == FRLAP1GD_RETURN_SIZE(n, ja, jb));
+  assert(nc == FRLAP1GD0_DIFF_COEFF_SIZE(n, ja, jb));
+  assert(n0 == FRLAP1GD0_FRLAP_SIZE(n, ja, jb));
 
   na = ja;
   nb = n-1-jb;
