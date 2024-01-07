@@ -29,21 +29,22 @@
 //#include <stdio.h>
 //#include "../array.h"
 
-enum frlap1gd_dctype {
-  FRLAP1GD_DCTYPE_UNKNOWN,
-  FRLAP1GD_DCTYPE_SPECTRAL,
-  FRLAP1GD_DCTYPE_HUANG_OBERMAN_LINEAR,
-  FRLAP1GD_DCTYPE_HUANG_OBERMAN_QUADRATIC,
-  FRLAP1GD_DCTYPE_GORENFLO_MAINARDI,
-  FRLAP1GD_DCTYPE_CENTERED_PERIODIC_3_POINT,
-  FRLAP1GD_DCTYPE_CENTERED_PERIODIC_5_POINT,
+enum frlap1gd_dc {
+  FRLAP1GD_DC_UNKNOWN,
+  FRLAP1GD_DC_USER_DEFINED,
+  FRLAP1GD_DC_SPECTRAL,
+  FRLAP1GD_DC_HUANG_OBERMAN_LINEAR,
+  FRLAP1GD_DC_HUANG_OBERMAN_QUADRATIC,
+  FRLAP1GD_DC_GORENFLO_MAINARDI,
+  FRLAP1GD_DC_CENTERED_PERIODIC_3_POINT,
+  FRLAP1GD_DC_CENTERED_PERIODIC_5_POINT,
 };
 
 struct frlap1gd {
-  double frexpo;
-  double step;
-  enum frlap1gd_dctype dctype;
-  void (*dcgtor)(double, double, size_t n, double[const static n]);
+  double           frac_expo;
+  double           grid_step;
+  enum frlap1gd_dc coef_type;
+  int (*dc_gtor)(double, double, size_t n, double[const static n]);
 };
 
 
