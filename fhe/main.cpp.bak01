@@ -1,0 +1,84 @@
+// Solution of FHE
+
+#include <frlap.hpp>
+#include <frlap/gdm/strategies/centered_3_point_periodized.hpp>
+#include "linspace.hpp"
+#include "toeplitz/fsp.hpp"
+#include "toeplitz/solvers/levinson.hpp"
+#include <iostream>
+#include <algorithm>
+#include <cmath>
+
+namespace fhe {
+  std::vector<double> advance(std::vector<double>& Un,
+               std::vector<double> const & Hm,
+               std::vector<double> const & Hp)
+  //               std::vector<double> const & Rn1)
+  {
+    auto Qn1 = fast_symm_prod(Hm, Un);
+    return toeplitz::solvers::levinson<double>(Hp, Qn1);
+  }
+}
+
+
+
+namespace frlap { namespace gdm { namespace strategies {
+  using c3point =
+    typename frlap::gdm::strategies::centered_3_point_periodized;
+    }}} // frlap::gdm::strategies
+int main(int argc, char * argv[])
+{
+  using std::cout;
+  using std::endl;
+  double b = 4.0, a = -4.0;
+  
+  double const ealpha = 0.4;
+  double       deltax = 0.1;
+  double const deltat = 0.1;
+  double const diffus = 1;
+  
+  auto u0 = [ealpha](double const & x) -> double {
+    double const sgn = ( std::isgreater(ealpha, 1.0) ? -1.0 : 1.0 );
+    return sgn * std::pow(1.0 + x*x, -0.5+ealpha/2.0);
+  };
+
+  
+
+  std::vector<double> Hm, Hp;
+  
+  std::size_t J = 11;
+
+  std::vector<double> Un{linspace(a, b, J)};
+  cout << "X = {"; for (auto x : Un) cout << x << ", "; cout << "\b\b}" << endl;
+  deltax = Un.at(1) - Un.at(0);
+  cout << "deltax = " << deltax << endl;
+
+  std::transform(Un.cbegin(), Un.cend(), Un.begin(), u0);
+  cout << "U0 = {"; for (auto x : Un) cout << x << ", "; cout << "\b\b}" << endl;
+  
+  { // Generate coefficients
+    std::vector<double> r(J);
+    frlap::gdm::strategies::c3point().generate_coefficients(ealpha, deltax, r);
+    cout << "MU = {"; for (auto mu : r) cout << mu << ", "; cout << "\b\b}" << endl;
+  
+  
+    { // Multiply the coefficients by diffus * deltat / 2:
+      double mult = diffus * deltat / 2;
+      std::for_each(r.begin(), r.end(), [&mult](double & c) { c *= mult; });
+      cout << "r = {"; for (auto c : r) cout << c << ", "; cout << "\b\b}" << endl;
+    }
+  
+    // Generate matrix H-:
+    Hm = r; Hm.at(0) *= -1; Hm.at(0) += 1;
+    cout << "Hm = {"; for (auto c : Hm) cout << c << ", "; cout << "\b\b}" << endl;
+
+    // Generate matrix H+:
+    Hp = r; Hp.at(0) += 1;
+    cout << "Hp = {"; for (auto c : Hp) cout << c << ", "; cout << "\b\b}" << endl;
+  }
+
+  auto Un1 = fhe::advance(Un, Hm, Hp);
+  cout << "U1 = {"; for (auto x : Un1) cout << x << ", "; cout << "\b\b}" << endl;
+  return 0;
+}
+

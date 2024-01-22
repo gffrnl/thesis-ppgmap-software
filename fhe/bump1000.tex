@@ -1,0 +1,17 @@
+\documentclass[12pt]{standalone}
+\usepackage{plotconfig}
+\begin{document}
+\begin{tikzpicture}
+\begin{axis} [
+    width=0.7\textwidth,
+    height=0.583333333\textwidth,
+    xlabel = {$t$},
+    ylabel = {$x$},
+    zlabel = {$u(t,x)$},
+    view={45}{45},
+    grid=both
+]
+\addplot3 [surf, opacity=0.75] file {bump1000.dat};
+\end{axis}
+\end{tikzpicture}
+\end{document}

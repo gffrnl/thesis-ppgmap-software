@@ -1,0 +1,63 @@
+// Solution of FHE
+
+#include <iostream>
+#include <vector>
+#include "frheateq.hpp"
+
+int main(int argc, char * argv[]) {
+  using std::cout;
+  using std::endl;
+  double const ealpha = 0.4;
+  double const a = -10.0;
+  double const b =  10.0;
+  
+//  frheateq::solvers::explicit_euler solver;
+//  frheateq::solvers::implicit_euler solver;
+  frheateq::solvers::crank_nicolson solver;
+
+  
+  auto u0 = [ealpha](double const & x) -> double {
+    double const sgn = ( std::isgreater(ealpha, 1.0) ? -1.0 : 1.0 );
+    return sgn * std::pow(1.0 + x*x, -0.5+ealpha/2.0);
+  };
+
+  auto phi = [](double const & x) -> double {
+    double const norm = std::fabs(x);
+    
+    if (!(norm < 1))
+      return 0;
+    
+    return std::exp(-1.0/(1-norm*norm));    
+  };
+
+  
+  solver.set_ealpha(1.4);
+  solver.set_domain(a,b);
+  solver.set_deltax(0.2);
+  solver.set_deltat(0.1);
+  solver.set_diffus(1);
+  solver.set_u0(u0);
+  
+  std::size_t J = solver.prepare();
+
+  cout << "numer of nodes = " << J << endl;
+  cout << "deltax = " << solver.get_deltax() << endl;
+
+  auto Un = linspace(a, b, J);
+
+  cout << "X = {"; for (auto x : Un) cout << x << ", "; cout << "\b\b}" << endl;
+
+  std::transform(Un.cbegin(), Un.cend(), Un.begin(), phi);
+
+  cout << "U0 = {"; for (auto x : Un) cout << x << ", "; cout << "\b\b}" << endl;
+
+  auto Un1 = solver.advance(Un);
+  cout << "U1 = {"; for (auto x : Un1) cout << x << ", "; cout << "\b\b}" << endl;
+
+  
+
+  
+  
+  return 0;
+}
+
